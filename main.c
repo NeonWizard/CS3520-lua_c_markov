@@ -1,26 +1,57 @@
+#include <lua.h>
+#include <lualib.h>
+#include <lauxlib.h>
 #include <stdio.h>
+#include "readfile.c"
 
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
 
-/* the Lua interpreter */
-lua_State* L;
+int babbler(lua_State *L) {
+	int maxiters = lua_tointeger(L, 1);
+	double x = lua_tonumber(L, 2);
+	double y = lua_tonumber(L, 3);
 
-int main ( int argc, char *argv[] )
-{
-        /* initialize Lua */
-        L = lua_open();
+	double a = x;
+	double b = y;
+	for (int i = 1; i <= maxiters; i++) {
+		double a2 = a * a;
+		double b2 = b * b;
+		if (a2 + b2 >= 4.0) {
+			lua_pushinteger(L, i);
+			return 1;
+		}
+		double ab = a * b;
+		b = ab + ab + y;
+		a = a2 - b2 + x;
+	}
+	lua_pushinteger(L, 0);
+	return 1;
+}
 
-        /* load various Lua libraries */
-        lua_baselibopen(L);
-        luaopen_table(L);
-        luaopen_io(L);
-        luaopen_string(L);
-        luaopen_math(L);
-    
-        /* cleanup Lua */
-        lua_close(L);
+int main() {
+	// setup
+	lua_State *L = luaL_newstate();
+	luaL_openlibs(L);
 
-        return 0;
+	// register the babbler function
+	lua_register(L, "cbabbler", babbler);
+
+	// load the lua file
+	if (luaL_dofile(L, "babbler.lua")) {
+		printf("Error in dofile\n");
+		return 1;
+	}
+
+	// read a file
+	// char *buffer = readfile(argv[1]);
+	// printf("%s", buffer);
+
+	// free(buffer);
+
+	// call generateImage
+	lua_getglobal(L, "generateImage");
+	lua_pcall(L, 0, 0, 0);
+
+	// shut down
+	lua_close(L);
+	return 0;
 }
