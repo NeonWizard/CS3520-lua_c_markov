@@ -1,53 +1,87 @@
-filename = "fractal.ppm"
-xcenter = -0.743643135
-ycenter = 0.131825963
-mag = 91152.35
-xsize = 800
-ysize = 600
-iters = 1000
-
-function mandel(maxiters, x, y)
-    local a = x
-    local b = y
-    for i = 1, maxiters do
-        local a2 = a * a
-        local b2 = b * b
-        if a2 + b2 >= 4.0 then
-            return i
-        end
-        local ab = a * b
-        b = ab + ab + y
-        a = a2 - b2 + x
-    end
-    return 0
+function math.randomchoice(t) -- selects a random item from a table
+	local keys = {}
+	for key, value in pairs(t) do
+		keys[#keys+1] = key -- store keys in another table
+	end
+	index = keys[math.random(#keys)]
+	return t[index]
 end
 
-function calcPixel(col, row, sizeX, sizeY, centerX, centerY, magnification)
-    local minsize = sizeX
-    if sizeY < sizeX then
-        minsize = sizeY
-    end
-    local x = centerX + (col - sizeX/2) / (magnification * (minsize-1))
-    local y = centerY - (row - sizeY/2) / (magnification * (minsize-1))
-    local i = cmandel(iters, x, y)
-    if i == 0 then
-        return 0, 0, 0
-    else
-        return 0, i%256, 0
-    end
+function tokenize(contents, n)
+	local tokens = {}
+	local offset = 0
+
+	while (offset < string.len(contents)) do
+		local token
+		token, offset = cgetToken(contents, offset)
+
+		if token ~= '' then
+			table.insert(tokens, token)
+		end
+	end
+
+	local wordcount = #tokens
+
+	for i = 1, n do
+		table.insert(tokens, tokens[i])
+	end
+
+	return tokens, wordcount
 end
 
-function generateImage()
-    local file = io.open(filename, "w")
-    file:write("P3\n"..xsize.." "..ysize.."\n255\n")
-    for row = 0, ysize-1 do
-        for col = 0, xsize-1 do
-            r, g, b = calcPixel(col, row, xsize, ysize, xcenter, ycenter, mag)
-            file:write(r.." "..g.." "..b.." ")
-        end
-        file:write("\n")
-    end
-    file:close()
+function shingle(tokens, wordcount, n)
+	local ngrams = {}
+	for i = 1, wordcount do
+		local gram = {}
+		for j = i, i+n-1 do
+			table.insert(gram, tokens[j])
+		end
+
+		table.insert(ngrams, gram)
+	end
+
+	return ngrams
 end
 
--- generateImage()
+function maketable(shingles)
+	local t = {}
+	for _, v in pairs(shingles) do
+		local key = {table.unpack(v)} -- quick copy so original key isn't modified
+		local suffix = table.remove(key)
+		local key = table.concat(key, " ")
+
+		if (t[key] == nil) then
+			t[key] = {}
+		end
+
+		table.insert(t[key], suffix)
+	end
+
+	return t
+end
+
+function babble(start, t, words)
+	local ngram = start
+
+	for i = 0, words do
+		table.remove(ngram, 1)
+		local prefix = table.concat(ngram, " ")
+		local candidates = t[prefix]
+		local suffix = candidates[math.random(#candidates)]
+		table.insert(ngram, suffix)
+
+		io.write(suffix .. " ")
+	end
+end
+
+function babbler(filename, words, n)
+	local contents = creadfile(filename)
+
+	local tokens, wordcount = tokenize(contents, n)
+
+	local shingles = shingle(tokens, wordcount, n)
+
+	local t = maketable(shingles)
+
+	babble(shingles[math.random(#shingles)], t, words)
+end
