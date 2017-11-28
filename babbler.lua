@@ -1,12 +1,3 @@
-function math.randomchoice(t) -- selects a random item from a table
-	local keys = {}
-	for key, value in pairs(t) do
-		keys[#keys+1] = key -- store keys in another table
-	end
-	index = keys[math.random(#keys)]
-	return t[index]
-end
-
 function tokenize(contents, n)
 	local tokens = {}
 	local offset = 0
